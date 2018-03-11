@@ -12,11 +12,11 @@ def corners_unwarp(img, mtx, dist):
     imgsize = (img.shape[1], img.shape[0]) # (maxwidth, maxheight)
     # pick up 4 src points
     # line1, short horizon
-    #src = np.float32([[264., 670.],[576., 460.],[705., 460.],[1042., 670.]])
+    src = np.float32([[264., 670.],[576., 460.],[705., 460.],[1042., 670.]])
     # line2, long horizon
     #src = np.float32([[272., 673.],[620., 430.],[661., 430.],[1052., 673.]])
     # line2, moderate horizon
-    src = np.float32([[272., 673.],[598., 445.],[685., 445.],[1052., 673.]])
+    src = np.float32([[272., 673.],[592., 450.],[690., 450.],[1052., 673.]])
     # set up 4 target points (assume flat ground, 1280, 720)
     dst = np.float32([[300., 720.],[300, 0],[980, 0],[980., 720.]])
     M = cv2.getPerspectiveTransform(src, dst)
