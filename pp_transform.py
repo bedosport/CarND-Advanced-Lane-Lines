@@ -16,7 +16,7 @@ def corners_unwarp(img, mtx, dist):
     # line2, long horizon
     #src = np.float32([[272., 673.],[620., 430.],[661., 430.],[1052., 673.]])
     # line2, moderate horizon
-    src = np.float32([[272., 673.],[592., 450.],[690., 450.],[1052., 673.]])
+    src = np.float32([[272., 673.],[593., 450.],[691., 450.],[1052., 673.]])
     # set up 4 target points (assume flat ground, 1280, 720)
     dst = np.float32([[300., 720.],[300, 0],[980, 0],[980., 720.]])
     M = cv2.getPerspectiveTransform(src, dst)
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     dist = dist_pickle["dist"]
 
     # Read in an image
-    img = cv2.imread('test_images/test5.jpg')
+    img = cv2.imread('test_images/straight_lines2_src.jpg')
 
     top_down, perspective_M = corners_unwarp(img, mtx, dist)
     f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
