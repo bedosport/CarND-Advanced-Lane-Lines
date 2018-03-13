@@ -32,8 +32,11 @@ if __name__ == "__main__":
 
     # Read in an image
     img = cv2.imread('test_images/straight_lines2_src.jpg')
-
+    
+    # calculate perspective transform
     top_down, perspective_M = corners_unwarp(img, mtx, dist)
+
+
     f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
     f.tight_layout()
     ax1.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))

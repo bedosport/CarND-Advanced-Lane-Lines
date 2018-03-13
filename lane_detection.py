@@ -4,72 +4,44 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import pickle
-from pp_transform import corners_unwarp
+from pp_transform import corners_unwarp  
 
-# Edit this function to create your own pipeline.
-def pipeline0(img, s_thresh=(170, 255), sx_thresh=(20, 100)):
-    img = np.copy(img)
-    # Convert to HLS color space and separate the V channel
-    hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.float)
-    h_channel = hls[:,:,0]
-    l_channel = hls[:,:,1]
-    s_channel = hls[:,:,2]
-    # Sobel x
-    sobelx = cv2.Sobel(h_channel, cv2.CV_64F, 1, 0) # Take the derivative in x
-    abs_sobelx = np.absolute(sobelx) # Absolute x derivative to accentuate lines away from horizontal
-    scaled_sobel = np.uint8(255*abs_sobelx/np.max(abs_sobelx))
-    
-    # Threshold x gradient
-    sxbinary = np.zeros_like(scaled_sobel)
-    sxbinary[(scaled_sobel >= sx_thresh[0]) & (scaled_sobel <= sx_thresh[1])] = 1
-    
-    # Threshold color channel
-    s_binary = np.zeros_like(s_channel)
-    s_binary[(s_channel >= s_thresh[0]) & (s_channel <= s_thresh[1])] = 1
-    # Stack each channel
-    # Note color_binary[:, :, 0] is all 0s, effectively an all black image. It might
-    # be beneficial to replace this channel with something else.
-    color_binary = np.dstack(( np.zeros_like(sxbinary), sxbinary, s_binary)) * 255
-    return np.uint8(color_binary)
-    
 
-def pipeline(img, s_kernel=7, s_thresh=(np.pi/8, np.pi/2), l_thresh = (220, 255), b_thresh = (155,255)):
-    # sobel magnitude
-    # gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    # sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=s_kernel)
-    # sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=s_kernel)
-    # mag_sobel = np.sqrt(np.square(sobelx) + np.square(sobely))
-    # scaled_sobel = np.uint8(255*mag_sobel/np.max(mag_sobel))
-    # direction = np.arctan2(np.absolute(sobely),np.absolute(sobelx))
-    # sxbinary = np.zeros_like(gray)
-    # sxbinary[(direction >= s_thresh[0]) & (direction <= s_thresh[1]) & (scaled_sobel > 60)] = 1
-    
-    # Convert to HLS color space and separate the V channel
-    print("convert hls")
+def evalPoly(fit_param, Y):
+    """
+    Evaluate X, based on Y of the polynomial
+    """
+    return fit_param[0]*Y**2 + fit_param[1]*Y + fit_param[2]
+
+def thresholdIMG(img, s_kernel=7, s_thresh=(np.pi/8, np.pi/2), l_thresh = (220, 255), b_thresh = (155,255)):
+    """
+    Thresholding original image with 3 different criteria
+    """
+    # Convert to HLS color space and use the L channel
     hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.float)
     l_channel = hls[:,:,1]
     l_binary = np.zeros_like(l_channel)
     l_binary[(l_channel>=l_thresh[0])&(l_channel<=l_thresh[1])] = 1
-
-
+    # calculate gradient in x direction
     sx_thresh=(20, 255)
     sobelx = cv2.Sobel(l_channel, cv2.CV_64F, 1, 0)
     abs_sobelx = np.absolute(sobelx)
     scaled_sobel = np.uint8(255*abs_sobelx/np.max(abs_sobelx))
     sxbinary = np.zeros_like(scaled_sobel)
     sxbinary[(scaled_sobel >= sx_thresh[0]) & (scaled_sobel <= sx_thresh[1])] = 1
-
-    # Convert to LAB color space
-    print("convert lab")
+    # Convert to LAB color space, and use the B channel
     lab = cv2.cvtColor(img, cv2.COLOR_RGB2LAB).astype(np.float)
     b_channel = lab[:,:,2]
     b_binary = np.zeros_like(b_channel)
     b_binary[(b_channel>=b_thresh[0])&(b_channel<=b_thresh[1])] = 1
-
     # combine detection binaries
-    print("Combine detection")
-    color_binary = np.dstack(( sxbinary, l_binary, b_binary)) * 255
-    return np.uint8(color_binary)
+    img_out = np.dstack(( sxbinary, l_binary, b_binary))
+    return img_out
+
+
+def pipeline(img):
+    img_out = img.copy()
+    return img_out
 
 
 
@@ -81,9 +53,9 @@ if __name__ == "__main__":
     dist = dist_pickle["dist"]
 
     # load image
-    image = mpimg.imread('test_images/test5.jpg')
+    image = mpimg.imread('test_images/test6.jpg')
     # threshold image
-    img_thresh = pipeline(image)
+    img_thresh = thresholdIMG(image)
     # unwarp image (TODO: change to load M from file)
     top_down, perspective_M = corners_unwarp(img_thresh, mtx, dist)
 
@@ -105,104 +77,16 @@ if __name__ == "__main__":
 
 
     binary_warped = np.zeros((top_down.shape[0], top_down.shape[1]))
-    binary_warped[(top_down[:,:,0]==1) | (top_down[:,:,1]==1) | (top_down[:,:,2]==1)] = 1
+    binary_warped[(top_down[:,:,0]>0) | (top_down[:,:,1]>0) | (top_down[:,:,2]>0)] = 1
 
 
-
-
-    fig = plt.figure(2)
-    # #Read in a thresholded image
-    # warped = binary_warped#mpimg.imread('warped_example.jpg')
-    # # window settings
-    # window_width = 50 
-    # window_height = 80 # Break image into 9 vertical layers since image height is 720
-    # margin = 100 # How much to slide left and right for searching
-
-    # def window_mask(width, height, img_ref, center,level):
-    #     output = np.zeros_like(img_ref)
-    #     output[int(img_ref.shape[0]-(level+1)*height):int(img_ref.shape[0]-level*height),max(0,int(center-width/2)):min(int(center+width/2),img_ref.shape[1])] = 1
-    #     return output
-
-    # def find_window_centroids(image, window_width, window_height, margin):
-        
-    #     window_centroids = [] # Store the (left,right) window centroid positions per level
-    #     window = np.ones(window_width) # Create our window template that we will use for convolutions
-        
-    #     # First find the two starting positions for the left and right lane by using np.sum to get the vertical image slice
-    #     # and then np.convolve the vertical image slice with the window template 
-        
-    #     # Sum quarter bottom of image to get slice, could use a different ratio
-    #     l_sum = np.sum(image[int(3*image.shape[0]/4):,:int(image.shape[1]/2)], axis=0)
-    #     l_center = np.argmax(np.convolve(window,l_sum))-window_width/2
-    #     r_sum = np.sum(image[int(3*image.shape[0]/4):,int(image.shape[1]/2):], axis=0)
-    #     r_center = np.argmax(np.convolve(window,r_sum))-window_width/2+int(image.shape[1]/2)
-        
-    #     # Add what we found for the first layer
-    #     window_centroids.append((l_center,r_center))
-        
-    #     # Go through each layer looking for max pixel locations
-    #     for level in range(1,(int)(image.shape[0]/window_height)):
-    #         # convolve the window into the vertical slice of the image
-    #         image_layer = np.sum(image[int(image.shape[0]-(level+1)*window_height):int(image.shape[0]-level*window_height),:], axis=0)
-    #         conv_signal = np.convolve(window, image_layer)
-    #         # Find the best left centroid by using past left center as a reference
-    #         # Use window_width/2 as offset because convolution signal reference is at right side of window, not center of window
-    #         offset = window_width/2
-    #         l_min_index = int(max(l_center+offset-margin,0))
-    #         l_max_index = int(min(l_center+offset+margin,image.shape[1]))
-    #         l_center = np.argmax(conv_signal[l_min_index:l_max_index])+l_min_index-offset
-    #         # Find the best right centroid by using past right center as a reference
-    #         r_min_index = int(max(r_center+offset-margin,0))
-    #         r_max_index = int(min(r_center+offset+margin,image.shape[1]))
-    #         r_center = np.argmax(conv_signal[r_min_index:r_max_index])+r_min_index-offset
-    #         # Add what we found for that layer
-    #         window_centroids.append((l_center,r_center))
-
-    #     return window_centroids
-
-    # window_centroids = find_window_centroids(warped, window_width, window_height, margin)
-
-    # # If we found any window centers
-    # if len(window_centroids) > 0:
-
-    #     # Points used to draw all the left and right windows
-    #     l_points = np.zeros_like(warped)
-    #     r_points = np.zeros_like(warped)
-
-    #     # Go through each level and draw the windows    
-    #     for level in range(0,len(window_centroids)):
-    #         # Window_mask is a function to draw window areas
-    #         l_mask = window_mask(window_width,window_height,warped,window_centroids[level][0],level)
-    #         r_mask = window_mask(window_width,window_height,warped,window_centroids[level][1],level)
-    #         # Add graphic points from window mask here to total pixels found 
-    #         l_points[(l_points == 255) | ((l_mask == 1) ) ] = 255
-    #         r_points[(r_points == 255) | ((r_mask == 1) ) ] = 255
-
-    #     # Draw the results
-    #     template = np.array(r_points+l_points,np.uint8) # add both left and right window pixels together
-    #     zero_channel = np.zeros_like(template) # create a zero color channel
-    #     template = np.array(cv2.merge((zero_channel,template,zero_channel)),np.uint8) # make window pixels green
-    #     warpage= np.dstack((warped, warped, warped))*255 # making the original road pixels 3 color channels
-    #     output = cv2.addWeighted(np.uint8(warpage), 1, template, 0.5, 0.0) # overlay the orignal road image with window results
-     
-    # # If no window centers found, just display orginal road image
-    # else:
-    #     output = np.array(cv2.merge((warped,warped,warped)),np.uint8)
-
-    # # Display the final results
-    # plt.imshow(output)
-    # plt.title('window fitting results')
-    # plt.show()
-
-
-
-
-
+    fig = plt.figure(3)
     # Assuming you have created a warped binary image called "binary_warped"
     # Take a histogram of the bottom half of the image
     histogram = np.sum(binary_warped[binary_warped.shape[0]/2:,:], axis=0)
     # Create an output image to draw on and  visualize the result
     out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
+    out_img = np.uint8(out_img)
     # Find the peak of the left and right halves of the histogram
     # These will be the starting point for the left and right lines
     midpoint = np.int(histogram.shape[0]/2)
@@ -273,15 +157,12 @@ if __name__ == "__main__":
 
     # Generate x and y values for plotting
     ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
-    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
-
+    left_fitx = evalPoly(left_fit, ploty)
+    right_fitx = evalPoly(right_fit, ploty)
     out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
     out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
-    fig = plt.figure(2)
-    print(binary_warped.shape)
-    plt.imshow(top_down)
-    #plt.imshow(out_img)
+
+    plt.imshow(np.uint8(out_img))
     plt.plot(left_fitx, ploty, color='yellow')
     plt.plot(right_fitx, ploty, color='yellow')
     plt.xlim(0, 1280)
@@ -290,26 +171,62 @@ if __name__ == "__main__":
 
 
 
-    # TODO:
-    # 1. create a video pipeline to detect lanes frame by frame
-    # 2. create a line class to keep track of the lane
-    # 3. calculate curvature and car center dist from lane
+    # out_dir='./'
+    # output = out_dir+'processed_project_video.mp4'
+    # clip = VideoFileClip("project_video.mp4")
+    # out_clip = clip.fl_image(process_image) 
 
 
-    # RGB 
-    # HLS  S thresh=(125, 255)
-
-    # # HLS L-channel Threshold (using default parameters)
-    # img_LThresh = hls_lthresh(img_unwarp)
-    # thresh=(220, 255)
-
-    # # Lab B-channel Threshold (using default parameters)
-    # img_BThresh = lab_bthresh(img_unwarp)
-    # thresh=(190,255)
-
-    # sobel mag + direction
-    # https://github.com/jeremy-shannon/CarND-Advanced-Lane-Lines/blob/master/project.ipynb
+    # # TODO:
+    # # 1. create a video pipeline to detect lanes frame by frame
+    # # 2. create a line class to keep track of the lane
 
 
+    plt.figure(4)
+    # plot on original image
+    # Create an image to draw the lines on
+    warp_zero = np.zeros_like(image).astype(np.uint8)
+    #color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
+
+    # Recast the x and y points into usable format for cv2.fillPoly()
+    pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))], dtype=np.int32)
+    pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))], dtype=np.int32)
+    pts = np.hstack((pts_left, pts_right))
+
+    # Draw the lane onto the warped blank image
+    #cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
+    cv2.fillPoly(warp_zero, pts, (0,255, 0))
+
+    # Warp the blank back to original image space using inverse perspective matrix (Minv)
+    newwarp = cv2.warpPerspective(warp_zero, np.linalg.inv(perspective_M), (image.shape[1], image.shape[0])) 
+    # Combine the result with the original image
+    result = cv2.addWeighted(image, 1, newwarp, 0.3, 0)
+
+
+    # Define conversions in x and y from pixels space to meters
+    ym_per_pix = 30./720 # meters per pixel in y dimension
+    xm_per_pix = 3.7/700 # meters per pixel in x dimension
+
+    # Fit new polynomials to x,y in world space
+    y_eval = np.max(ploty)
+    left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
+    right_fit_cr = np.polyfit(righty*ym_per_pix, rightx*xm_per_pix, 2)
+    # Calculate the new radii of curvature
+    left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
+    right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
+    # Now our radius of curvature is in meters
+    print(left_curverad, 'm', right_curverad, 'm')
+    # Example values: 632.1 m    626.2 m
+
+    # print distance from center and radius on the image
+    lane_center = (evalPoly(left_fit_cr, ploty[-1]*ym_per_pix) + evalPoly(right_fit_cr, ploty[-1]*ym_per_pix))/2.0
+    car_center = image.shape[1]*xm_per_pix/2.0
+    str1 = "Distance from center: {:2.2f} m".format(car_center-lane_center)
+    str2 = "Radius of Curvature: {:2.2f} km".format((left_curverad+right_curverad)/2000.)
+    cv2.putText(result,str1,(430,630), cv2.FONT_HERSHEY_DUPLEX, 1,(0,0,255))  
+    cv2.putText(result,str2,(430,660), cv2.FONT_HERSHEY_DUPLEX, 1,(0,0,255))    
+
+    plt.imshow(result)
     plt.show()
+
     print("finish plotting")
