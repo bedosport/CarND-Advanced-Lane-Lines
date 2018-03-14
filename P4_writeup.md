@@ -68,21 +68,14 @@ The image thresholding based on these three features is visualized in Green, Red
 ![thresh][img3]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
-
+This resulted in the following source and destination points:
 
     # line2, moderate horizon
     src = np.float32([[272., 673.],[593., 450.],[691., 450.],[1052., 673.]])
     # set up 4 target points (assume flat ground, 1280, 720)
     dst = np.float32([[300., 720.],[300, 0],[980, 0],[980., 720.]])
 
-This resulted in the following source and destination points:
 
-| Source        | Destination   | 
-|:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
 
 
 Perspective transform: verify it is straight, parallel
@@ -107,6 +100,12 @@ fit polynomial to lines
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
 radius, center
+f(y) = Ay2 + By +C
+
+R=(1+(2Ay+B)^2)^(3/2)/abs(2A)
+
+convet from pixel to meters,     ym_per_pix = 30./720 # meters per pixel in y dimension
+    xm_per_pix = 3.7/700 # meters per pixel in x dimension
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
@@ -139,5 +138,7 @@ Final pipeline video (click on the image to view the video from youtube)
 Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further. 
 
 Lighting conditions, broken lines, repainted lines, cause broken line
+
+save lane info into lane object, use continuity to save processing time
 
 Combine with sensor fusion, use high precisioin maps, know approximate value from map then combine with lane detection algorithm.  
