@@ -15,7 +15,7 @@ def evalPoly(fit_param, Y):
     """
     return fit_param[0]*Y**2 + fit_param[1]*Y + fit_param[2]
 
-def thresholdIMG(img, sx_thresh=(20, 255), l_thresh = (220, 255), b_thresh = (155,255)):
+def thresholdIMG(img, sx_thresh=(40, 255), l_thresh = (220, 255), b_thresh = (155,255)):
     """
     Thresholding original image with 3 different criteria
     """
@@ -182,7 +182,8 @@ if __name__ == "__main__":
     dist = dist_pickle["dist"]
 
     # load image
-    image = mpimg.imread('test_images/p1.png')
+    #image = mpimg.imread('test_images/p3.png')
+    image = mpimg.imread('test_images/test6.jpg')
     image = img_as_ubyte(image)
     # threshold image
     img_thresh = thresholdIMG(image)
