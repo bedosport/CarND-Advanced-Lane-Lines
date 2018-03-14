@@ -4,6 +4,8 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import pickle
+# convert float image to uint8 image
+from skimage import img_as_ubyte
 from pp_transform import corners_unwarp  
 
 
@@ -13,7 +15,7 @@ def evalPoly(fit_param, Y):
     """
     return fit_param[0]*Y**2 + fit_param[1]*Y + fit_param[2]
 
-def thresholdIMG(img, s_kernel=7, s_thresh=(np.pi/8, np.pi/2), l_thresh = (220, 255), b_thresh = (155,255)):
+def thresholdIMG(img, sx_thresh=(20, 255), l_thresh = (220, 255), b_thresh = (155,255)):
     """
     Thresholding original image with 3 different criteria
     """
@@ -23,7 +25,6 @@ def thresholdIMG(img, s_kernel=7, s_thresh=(np.pi/8, np.pi/2), l_thresh = (220, 
     l_binary = np.zeros_like(l_channel)
     l_binary[(l_channel>=l_thresh[0])&(l_channel<=l_thresh[1])] = 1
     # calculate gradient in x direction
-    sx_thresh=(20, 255)
     sobelx = cv2.Sobel(l_channel, cv2.CV_64F, 1, 0)
     abs_sobelx = np.absolute(sobelx)
     scaled_sobel = np.uint8(255*abs_sobelx/np.max(abs_sobelx))
@@ -39,48 +40,10 @@ def thresholdIMG(img, s_kernel=7, s_thresh=(np.pi/8, np.pi/2), l_thresh = (220, 
     return img_out
 
 
-def pipeline(img):
-    img_out = img.copy()
-    return img_out
-
-
-
-
-if __name__ == "__main__":
-    # load camera calibration data
-    dist_pickle = pickle.load( open( "camera_cal/calibration_undistort.p", "rb" ) )
-    mtx = dist_pickle["mtx"]
-    dist = dist_pickle["dist"]
-
-    # load image
-    image = mpimg.imread('test_images/test6.jpg')
-    # threshold image
-    img_thresh = thresholdIMG(image)
-    # unwarp image (TODO: change to load M from file)
-    top_down, perspective_M = corners_unwarp(img_thresh, mtx, dist)
-
-    # Plot the result
-    f, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(24, 9))
-    f.tight_layout()
-
-    ax1.imshow(image)
-    ax1.set_title('Original Image', fontsize=20)
-
-    ax2.imshow(img_thresh)
-    #plt.save_figure(result, "result.jpg")
-    ax2.set_title('Threshold Result', fontsize=20)
-
-    ax3.imshow(top_down)
-    #plt.save_figure(result, "result.jpg")
-    ax3.set_title('Pipeline Result', fontsize=20)
-    #plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
-
-
+def findLanes(top_down):
     binary_warped = np.zeros((top_down.shape[0], top_down.shape[1]))
     binary_warped[(top_down[:,:,0]>0) | (top_down[:,:,1]>0) | (top_down[:,:,2]>0)] = 1
 
-
-    fig = plt.figure(3)
     # Assuming you have created a warped binary image called "binary_warped"
     # Take a histogram of the bottom half of the image
     histogram = np.sum(binary_warped[binary_warped.shape[0]/2:,:], axis=0)
@@ -149,52 +112,32 @@ if __name__ == "__main__":
     lefty = nonzeroy[left_lane_inds] 
     rightx = nonzerox[right_lane_inds]
     righty = nonzeroy[right_lane_inds] 
+    pts_raw = [leftx, lefty, rightx, righty]
+
+    out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+    out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
 
     # Fit a second order polynomial to each
     left_fit = np.polyfit(lefty, leftx, 2)
     right_fit = np.polyfit(righty, rightx, 2)
 
-
     # Generate x and y values for plotting
-    ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
+    ploty = np.linspace(0, top_down.shape[0]-1, top_down.shape[0] )
     left_fitx = evalPoly(left_fit, ploty)
     right_fitx = evalPoly(right_fit, ploty)
-    out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
-    out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
-
-    plt.imshow(np.uint8(out_img))
-    plt.plot(left_fitx, ploty, color='yellow')
-    plt.plot(right_fitx, ploty, color='yellow')
-    plt.xlim(0, 1280)
-    plt.ylim(720, 0)
-
-
-
-
-    # out_dir='./'
-    # output = out_dir+'processed_project_video.mp4'
-    # clip = VideoFileClip("project_video.mp4")
-    # out_clip = clip.fl_image(process_image) 
-
-
-    # # TODO:
-    # # 1. create a video pipeline to detect lanes frame by frame
-    # # 2. create a line class to keep track of the lane
-
-
-    plt.figure(4)
-    # plot on original image
-    # Create an image to draw the lines on
-    warp_zero = np.zeros_like(image).astype(np.uint8)
-    #color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
-
     # Recast the x and y points into usable format for cv2.fillPoly()
     pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))], dtype=np.int32)
     pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))], dtype=np.int32)
     pts = np.hstack((pts_left, pts_right))
 
+    return pts, pts_raw, out_img
+
+def visualLane(image, pts, pts_raw, perspective_M):
+    # plot on original image
+    # Create an image to draw the lines on
+    warp_zero = np.zeros_like(image).astype(np.uint8)
+
     # Draw the lane onto the warped blank image
-    #cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
     cv2.fillPoly(warp_zero, pts, (0,255, 0))
 
     # Warp the blank back to original image space using inverse perspective matrix (Minv)
@@ -202,30 +145,77 @@ if __name__ == "__main__":
     # Combine the result with the original image
     result = cv2.addWeighted(image, 1, newwarp, 0.3, 0)
 
-
     # Define conversions in x and y from pixels space to meters
     ym_per_pix = 30./720 # meters per pixel in y dimension
     xm_per_pix = 3.7/700 # meters per pixel in x dimension
 
     # Fit new polynomials to x,y in world space
-    y_eval = np.max(ploty)
+    ymax = float(image.shape[0])
+    y_eval = ymax
+    leftx = pts_raw[0]
+    lefty = pts_raw[1]
+    rightx = pts_raw[2]
+    righty = pts_raw[3]
     left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
     right_fit_cr = np.polyfit(righty*ym_per_pix, rightx*xm_per_pix, 2)
     # Calculate the new radii of curvature
     left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
     right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
     # Now our radius of curvature is in meters
-    print(left_curverad, 'm', right_curverad, 'm')
-    # Example values: 632.1 m    626.2 m
+    # print(left_curverad, 'm', right_curverad, 'm')
 
     # print distance from center and radius on the image
-    lane_center = (evalPoly(left_fit_cr, ploty[-1]*ym_per_pix) + evalPoly(right_fit_cr, ploty[-1]*ym_per_pix))/2.0
+    lane_center = (evalPoly(left_fit_cr, ymax*ym_per_pix) + evalPoly(right_fit_cr, ymax*ym_per_pix))/2.0
     car_center = image.shape[1]*xm_per_pix/2.0
     str1 = "Distance from center: {:2.2f} m".format(car_center-lane_center)
     str2 = "Radius of Curvature: {:2.2f} km".format((left_curverad+right_curverad)/2000.)
     cv2.putText(result,str1,(430,630), cv2.FONT_HERSHEY_DUPLEX, 1,(0,0,255))  
     cv2.putText(result,str2,(430,660), cv2.FONT_HERSHEY_DUPLEX, 1,(0,0,255))    
+    return result
 
+
+
+if __name__ == "__main__":
+    # load camera calibration data
+    dist_pickle = pickle.load( open( "camera_cal/calibration_undistort.p", "rb" ) )
+    mtx = dist_pickle["mtx"]
+    dist = dist_pickle["dist"]
+
+    # load image
+    image = mpimg.imread('test_images/p1.png')
+    image = img_as_ubyte(image)
+    # threshold image
+    img_thresh = thresholdIMG(image)
+    # unwarp image
+    top_down, perspective_M = corners_unwarp(img_thresh, mtx, dist)
+
+    # Plot the result
+    f, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(24, 9))
+    f.tight_layout()
+    ax1.imshow(image)
+    ax1.set_title('Original Image', fontsize=20)
+    ax2.imshow(img_thresh)
+    #plt.save_figure(result, "result.jpg")
+    ax2.set_title('Threshold Result', fontsize=20)
+    ax3.imshow(top_down)
+    #plt.save_figure(result, "result.jpg")
+    ax3.set_title('Pipeline Result', fontsize=20)
+    #plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
+
+
+    fig = plt.figure(2)
+    # find lane line pixels
+    pts, pts_raw, out_img = findLanes(top_down)
+    plt.imshow(np.uint8(out_img))
+    N = pts.shape[1]
+    plt.plot(pts[0, 0:N/2, 0], pts[0, 0:N/2, 1], color='yellow')
+    plt.plot(pts[0, N/2:, 0], pts[0, N/2:, 1], color='yellow')
+    plt.xlim(0, 1280)
+    plt.ylim(720, 0)
+
+
+    plt.figure(3)
+    result = visualLane(image, pts, pts_raw, perspective_M)
     plt.imshow(result)
     plt.show()
 

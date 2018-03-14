@@ -32,7 +32,6 @@ if __name__ == "__main__":
 
     # Read in an image
     img = cv2.imread('test_images/straight_lines2_src.jpg')
-    
     # calculate perspective transform
     top_down, perspective_M = corners_unwarp(img, mtx, dist)
 
