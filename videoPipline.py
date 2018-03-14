@@ -76,7 +76,7 @@ class videoProcessor:
         # visualize lane and parameters
         result = visualLane(img, pts, pts_raw, perspective_M)
         # overlay lane detection on the original image
-        # x 420 to 840, y 240 to 480
+        # x 420 to 840, y 0 to 240
         resized_img = cv2.resize(out_img, (420, 240)) 
         for c in range(0, 3):
             result[0:240, 420:840, c] = (0.5*result[0:240, 420:840, c] + 0.5*resized_img[:, :, c])
@@ -100,8 +100,8 @@ if __name__ == "__main__":
     # construct a video processor with calibration data
     #vp = videoProcessor("small.mp4", mtx, dist)
     vp = videoProcessor("project_video.mp4", mtx, dist)
-    vp = videoProcessor("challenge_video.mp4", mtx, dist)
-    vp = videoProcessor("harder_challenge_video.mp4", mtx, dist)
+    #vp = videoProcessor("challenge_video.mp4", mtx, dist)
+    #vp = videoProcessor("harder_challenge_video.mp4", mtx, dist)
 
     # start processing video and generate output video
     vp.process_video()
