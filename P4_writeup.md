@@ -39,81 +39,41 @@ The goals / steps of this project are the following:
 
 ---
 
-### Writeup / README
-
-#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
-
-Camera undistortion:
-![undistort][img1]
-
-Perspective transform:
-![pptrans][img2]
-
-pp on curved roads
-![curve1][img4]
-![curve2][img5]
-
-Threshold images:
-![thresh][img3]
-
-fit polynomial to lines
-![lines][img6]
-
-Calculate radius of curvature and shift from center
-![test1][img7]
-![test2][img8]
-![test3][img9]
-![test4][img10]
-![test5][img11]
-![test6][img12]
-
-Final pipeline video
-[![final][img13]](https://www.youtube.com/watch?v=X8QN-qY7uIo)
-
-
-
-
 ### Camera Calibration
 
 #### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
-The code for this step is contained in the first code cell of the IPython notebook located in "./examples/example.ipynb" (or in lines # through # of the file called `some_file.py`).  
+To reduce the error introduced by camera distortion, images taken for a standard chessboard is used to correct the distortion (calibration images are in the "camera_cal" folder). The camera calibration script is "Camera_calib.py". In the images, the 9 by 6 intersection points are detected. Then the actual coordinates of these intersection points are matched up with the image.
 
-I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
+After camera calibration, the camera calibration matrix is saved into the pickle file "camera_cal/calibration_undistort.p". 
 
-I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
-
-![alt text][image1]
 
 ### Pipeline (single images)
 
 #### 1. Provide an example of a distortion-corrected image.
 
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
-![alt text][image2]
+Using the calibration data from the pickle file, we can recover the undistorted image as shown below.
+![undistort][img1]
+
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+To extract the lane information from the image in a reliable way, we need to find some universal features in the image. After experimenting with different color spaces, the following three features are used to threshold the original image.
 
-![alt text][image3]
+* The L channel of HLS color space. This lightness channel helps to distingush the lane line from the rest of the environment.
+* Gradient in x direction of the L channel in HLS color space. Since the lane line is approximately vertical from the camera's perspective, the gradient in the x direction can make the lane line standout significantly.
+* The B channel of LAB color space. This "blue–yellow" color channel greatly helps picking up the yellow lane line. Adding this channel helps us picking up the yellow lane lines in a reliable way.
+
+The image thresholding based on these three features is visualized in Green, Red, and Blue colors, respectfuly. This combination is very effective for detecting the lane lines in different lighting and road conditions. An interesting observation is that the B channel detects left yellow lane very well (as expected, B means "blue–yellow"), the L channel detects the right white lane very well (white lane is bright!), the x gradient detects all the important pixels with lots of other stuff. 
+![thresh][img3]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
 
-```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
-```
+    # line2, moderate horizon
+    src = np.float32([[272., 673.],[593., 450.],[691., 450.],[1052., 673.]])
+    # set up 4 target points (assume flat ground, 1280, 720)
+    dst = np.float32([[300., 720.],[300, 0],[980, 0],[980., 720.]])
 
 This resulted in the following source and destination points:
 
@@ -124,25 +84,42 @@ This resulted in the following source and destination points:
 | 1127, 720     | 960, 720      |
 | 695, 460      | 960, 0        |
 
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
 
-![alt text][image4]
+Perspective transform: verify it is straight, parallel
+![pptrans][img2]
+
+
+pp on curved roads
+![curve1][img4]
+![curve2][img5]
+
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
 Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
 
-![alt text][image5]
+fit polynomial to lines
+![lines][img6]
+
+
+
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+radius, center
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+Calculate radius of curvature and shift from center
+![test1][img7]
+![test2][img8]
+![test3][img9]
+![test4][img10]
+![test5][img11]
+![test6][img12]
 
-![alt text][image6]
+
+
 
 ---
 
@@ -150,7 +127,8 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+Final pipeline video (click on the image to view the video from youtube)
+[![final][img13]](https://www.youtube.com/watch?v=X8QN-qY7uIo)
 
 ---
 

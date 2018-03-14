@@ -41,6 +41,9 @@ def thresholdIMG(img, sx_thresh=(40, 255), l_thresh = (220, 255), b_thresh = (15
 
 
 def findLanes(top_down):
+    """
+    extract lanes from top_down view of the road
+    """
     binary_warped = np.zeros((top_down.shape[0], top_down.shape[1]))
     binary_warped[(top_down[:,:,0]>0) | (top_down[:,:,1]>0) | (top_down[:,:,2]>0)] = 1
 
@@ -133,6 +136,9 @@ def findLanes(top_down):
     return pts, pts_raw, out_img
 
 def visualLane(image, pts, pts_raw, perspective_M):
+    """
+    Visualize the detected lane, radius, and car center shift
+    """
     # plot on original image
     # Create an image to draw the lines on
     warp_zero = np.zeros_like(image).astype(np.uint8)
