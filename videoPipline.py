@@ -57,6 +57,9 @@ class videoProcessor:
         top_down, perspective_M = corners_unwarp(img_thresh, self.mtx, self.dist)
         # find lane line pixels
         pts, pts_raw, out_img = findLanes(top_down)
+        # update lane representation, this infomation can be used "hot" start the next sliding window
+        # self.lL = pts_raw[0]
+        # self.lR = pts_raw[2]
         # visualize lane and parameters
         result = visualLane(img, pts, pts_raw, perspective_M)
         return result
@@ -73,12 +76,16 @@ class videoProcessor:
         top_down, perspective_M = corners_unwarp(img_thresh, self.mtx, self.dist)
         # find lane line pixels
         pts, pts_raw, out_img = findLanes(top_down)
+        # update lane representation, this infomation can be used "hot" start the next sliding window
+        # self.lL = pts_raw[0]
+        # self.lR = pts_raw[2]
         # visualize lane and parameters
         result = visualLane(img, pts, pts_raw, perspective_M)
         # overlay lane detection on the original image
         # x 420 to 840, y 0 to 240
         resized_img = cv2.resize(out_img, (420, 240)) 
         for c in range(0, 3):
+            # overlay detection video with 0.5 transparentcy
             result[0:240, 420:840, c] = (0.5*result[0:240, 420:840, c] + 0.5*resized_img[:, :, c])
         return result
 

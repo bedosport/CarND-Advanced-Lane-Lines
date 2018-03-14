@@ -1,9 +1,5 @@
 ## Writeup Template
 
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
----
-
 **Advanced Lane Finding Project**
 
 The goals / steps of this project are the following:
@@ -27,9 +23,19 @@ The goals / steps of this project are the following:
 [image6]: ./examples/example_output.jpg "Output"
 [video1]: ./project_video.mp4 "Video"
 
-## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
-
-### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
+[img1]: ./output_images/undistort_sample.png "undistort"
+[img2]: ./output_images/pp_transform.png "pptransform"
+[img3]: ./output_images/Thresh_3.png "thresh"
+[img4]: ./output_images/pp_curve1.png "curve1"
+[img5]: ./output_images/pp_curve2.png "curve2"
+[img6]: ./output_images/line_detection.png "lines"
+[img7]: ./output_images/test1_out.png "test1"
+[img8]: ./output_images/test2_out.png "test2"
+[img9]: ./output_images/test3_out.png "test3"
+[img10]: ./output_images/test4_out.png "test4"
+[img11]: ./output_images/test5_out.png "test5"
+[img12]: ./output_images/test6_out.png "test6"
+[img13]: ./output_images/final.png "final"
 
 ---
 
@@ -37,7 +43,35 @@ The goals / steps of this project are the following:
 
 #### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
 
-You're reading it!
+Camera undistortion:
+![undistort][img1]
+
+Perspective transform:
+![pptrans][img2]
+
+pp on curved roads
+![curve1][img4]
+![curve2][img5]
+
+Threshold images:
+![thresh][img3]
+
+fit polynomial to lines
+![lines][img6]
+
+Calculate radius of curvature and shift from center
+![test1][img7]
+![test2][img8]
+![test3][img9]
+![test4][img10]
+![test5][img11]
+![test6][img12]
+
+Final pipeline video
+[![final][img13]](https://www.youtube.com/watch?v=X8QN-qY7uIo)
+
+
+
 
 ### Camera Calibration
 
@@ -124,4 +158,8 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further. 
+
+Lighting conditions, broken lines, repainted lines, cause broken line
+
+Combine with sensor fusion, use high precisioin maps, know approximate value from map then combine with lane detection algorithm.  
