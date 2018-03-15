@@ -153,10 +153,11 @@ The image processing pipeline is built with the camera undistortion, perspective
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further. 
+The biggest problem faced in this project is to make the detection pipeline robust for all different scenarios. These scenarios includes different lighting conditions, broken lines, repainted lines, curvy lanes. In order to handle all these scenarios, it is important to use multiple features to threshold the road image. I found through trial and error that the L channel of HLS color space, the gradient in x direction of the L channel, and the B channel of LAB color space are effective features to handle different scenarios.
 
-Lighting conditions, broken lines, repainted lines, cause broken line
+In the meantime, there are still many more ways to make the current pipeline even better:
+* We can save the lane information into lane object, and leverage the continuity of the lane to effeciently and robustness detect lanes with the sliding window approach.
 
-save lane info into lane object, use continuity to save processing time
+* To make the detection pipeline more robust, it can be combined with precision maps. In the precision map, we already have a good representation of the lanes with a relatively good precision. Combining this map information with the lane detection algorithm, we can make sure the detected lane paprameter is always reasonable. In the cases that the detection algorithm is very bad, we can use the mapping information and interpolate to get good lane predictions.
 
-Combine with sensor fusion, use high precisioin maps, know approximate value from map then combine with lane detection algorithm.  
+* Comibine lane detection with other sensors on the car. The self-driving car has lots of other sensors that can detect the heading angle and the environment changes. We can use these sensor information to guide the search in the lane detection pipleline.
