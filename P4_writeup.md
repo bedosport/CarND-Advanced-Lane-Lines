@@ -105,19 +105,31 @@ The nine sliding windows and the fitted polynomials are overlayed on the image b
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-radius, center
-f(y) = Ay2 + By +C
+The polynomial fitted with pixel data are good for visualization, but it does not show actual object size. Thus, a conversion is performed to get the actual size of the road. The U.S. regulations require a minimum lane width of 3.7 meters, which corresponds to the 700 pixels width in the image. Also a look ahead distance of 30 meters is approximately 720 pixels in the image.
 
-http://csrgxtu.github.io/2015/03/20/Writing-Mathematic-Fomulars-in-Markdown/
+	# meters per pixel in y dimension
+	ym_per_pix = 30./720 
+	# meters per pixel in x dimension
+	xm_per_pix = 3.7/700
 
-R=(1+(2Ay+B)^2)^(3/2)/abs(2A)
+Using these conversion units, we can fit the real lane as a polynomial: f(y) = Ay^2 + By +C. With a second order polynomial, the radius of curvature can be analytically represented as:
 
-convet from pixel to meters,     ym_per_pix = 30./720 # meters per pixel in y dimension
-    xm_per_pix = 3.7/700 # meters per pixel in x dimension
+R=(1+(2Ay+B)^2)^(3/2)/|2A|
+
+By assuming that the camera is mounted exactly at the center of the car, the shift of the car from the center of the lane can be caculated in the unit of pixels. Then xm_per_pix can be used to convert this shift value into meters.
+
+    # calculate lane center as center of two lanes
+    lane_center = (evalPoly(left_fit_cr, ymax*ym_per_pix) + evalPoly(right_fit_cr, ymax*ym_per_pix))/2.0
+    # calculate car center as the center of the picture
+    car_center = image.shape[1]*xm_per_pix/2.0
+    # calculate car center shift between car center and lane center
+    str1 = "Distance from center: {:2.2f} m".format(car_center-lane_center)
+
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-Calculate radius of curvature and shift from center
+The result of the lane detection algorithm is overlayed on the camera images. The actual lane is plotted in green by filling the region between the two fitted polynomials. The calculated radius of curvature and distance from lane center are also plotted on the image. In the following six images, we show that this lane detection pipeline can robustly detect the lane and calculate the actual lane parameters.
+
 ![test1][img7]
 ![test2][img8]
 ![test3][img9]
@@ -126,15 +138,13 @@ Calculate radius of curvature and shift from center
 ![test6][img12]
 
 
-
-
 ---
 
 ### Pipeline (video)
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Final pipeline video (click on the image to view the video from youtube)
+The image processing pipeline is built with the camera undistortion, perspective transformation, image thresholding, and lane detection modules. The final video pipeline class ("videoPipeline.py") is built by importing all these sub modules. The final output generated with the video pipeline is shown in the following youtube video. (click on the image to view the video from youtube)
 [![final][img13]](https://www.youtube.com/watch?v=X8QN-qY7uIo)
 
 ---
