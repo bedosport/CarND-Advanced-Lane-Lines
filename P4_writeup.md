@@ -68,21 +68,22 @@ The image thresholding based on these three features is visualized in Green, Red
 ![thresh][img3]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
-This resulted in the following source and destination points:
+The lane lines detected directly from the camera's perspective is different from what they really are. A perspective transformation is performed to get a bird-eye view of the lane lines. To figure out the transformation between the camera's perspective and the bird-eye view, we take a image of the straight lane line as a reference.
+
+In the straight lane image, the lanes lines should be parallel to each other and straight. With this intuition, we select four corner points in the image and map them to a rectangle. It is discovered that the further away the corner points are, the more sensitive the mapping accuracy becomes. With some experimenting, we find the following source and destination points that will give us moderate look ahead horizon and good accuracy.
 
     # line2, moderate horizon
     src = np.float32([[272., 673.],[593., 450.],[691., 450.],[1052., 673.]])
     # set up 4 target points (assume flat ground, 1280, 720)
     dst = np.float32([[300., 720.],[300, 0],[980, 0],[980., 720.]])
 
+After applying perspective transformation based on these points, we can verify that the straight lanes are indeed straight and parallel in the bird-eye view.
 
-
-
-Perspective transform: verify it is straight, parallel
 ![pptrans][img2]
 
 
-pp on curved roads
+This perspective trasformation is also applied on some curved roads. It can be observed that the tranformed lane lines are also approximately parallel to each other. This validates that our perspective transformation is correct.
+
 ![curve1][img4]
 ![curve2][img5]
 
