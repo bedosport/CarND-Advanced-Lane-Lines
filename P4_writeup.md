@@ -92,11 +92,12 @@ This perspective trasformation is also applied on some curved roads. It can be o
 
 A sliding window approach is applied to identify the pixels that are the lane lines. For each lane line, they are nine windows to segment the lane line, such that we can find the lane lines leverging the continuity of the lane line without too much computations. Then two second order polynomials are fitted as an analytical form of the lane lines. The code for this part is in the "findLanes" function in "lane_detection.py", which is later imported as a module for the video pipeline. Note that the lane is only detected in pixel units here.
 
-    # Fit a second order polynomial to each
+    # Fit a second order polynomial to each lane lines
     left_fit = np.polyfit(lefty, leftx, 2)
     right_fit = np.polyfit(righty, rightx, 2)
 
 The nine sliding windows and the fitted polynomials are overlayed on the image below.
+
 ![lines][img6]
 
 
@@ -106,6 +107,8 @@ The nine sliding windows and the fitted polynomials are overlayed on the image b
 
 radius, center
 f(y) = Ay2 + By +C
+
+http://csrgxtu.github.io/2015/03/20/Writing-Mathematic-Fomulars-in-Markdown/
 
 R=(1+(2Ay+B)^2)^(3/2)/abs(2A)
 
