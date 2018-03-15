@@ -58,7 +58,7 @@ Using the calibration data from the pickle file, we can recover the undistorted 
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-To extract the lane information from the image in a reliable way, we need to find some universal features in the image. After experimenting with different color spaces, the following three features are used to threshold the original image.
+To extract the lane information from the image in a reliable way, we need to find some universal features in the image. The code for this part is in the "thresholdIMG" function in "lane_detection.py", which is later imported as a module for the video pipeline. After experimenting with different color spaces, the following three features are used to threshold the original image.
 
 * The L channel of HLS color space. This lightness channel helps to distingush the lane line from the rest of the environment.
 * Gradient in x direction of the L channel in HLS color space. Since the lane line is approximately vertical from the camera's perspective, the gradient in the x direction can make the lane line standout significantly.
@@ -68,16 +68,16 @@ The image thresholding based on these three features is visualized in Green, Red
 ![thresh][img3]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
-The lane lines detected directly from the camera's perspective is different from what they really are. A perspective transformation is performed to get a bird-eye view of the lane lines. To figure out the transformation between the camera's perspective and the bird-eye view, we take a image of the straight lane line as a reference.
+The lane lines detected directly from the camera's perspective is different from what they really are. A perspective transformation is performed to get a bird-eye view of the lane lines. The code for this part is in "pp_transform.py", which is later imported as a module for the video pipeline. To figure out the transformation between the camera's perspective and the bird-eye view, we take a image of the straight lane line as a reference.
 
 In the straight lane image, the lanes lines should be parallel to each other and straight. With this intuition, we select four corner points in the image and map them to a rectangle. It is discovered that the further away the corner points are, the more sensitive the mapping accuracy becomes. With some experimenting, we find the following source and destination points that will give us moderate look ahead horizon and good accuracy.
 
-    # line2, moderate horizon
+    # pick four corner points, moderate look ahead horizon
     src = np.float32([[272., 673.],[593., 450.],[691., 450.],[1052., 673.]])
     # set up 4 target points (assume flat ground, 1280, 720)
     dst = np.float32([[300., 720.],[300, 0],[980, 0],[980., 720.]])
 
-After applying perspective transformation based on these points, we can verify that the straight lanes are indeed straight and parallel in the bird-eye view.
+After applying perspective transformation based on these points, we can verify that the straight lanes are indeed straight and parallel in the transformed bird-eye view.
 
 ![pptrans][img2]
 
@@ -90,9 +90,13 @@ This perspective trasformation is also applied on some curved roads. It can be o
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+A sliding window approach is applied to identify the pixels that are the lane lines. For each lane line, they are nine windows to segment the lane line, such that we can find the lane lines leverging the continuity of the lane line without too much computations. Then two second order polynomials are fitted as an analytical form of the lane lines. The code for this part is in the "findLanes" function in "lane_detection.py", which is later imported as a module for the video pipeline. Note that the lane is only detected in pixel units here.
 
-fit polynomial to lines
+    # Fit a second order polynomial to each
+    left_fit = np.polyfit(lefty, leftx, 2)
+    right_fit = np.polyfit(righty, rightx, 2)
+
+The nine sliding windows and the fitted polynomials are overlayed on the image below.
 ![lines][img6]
 
 
